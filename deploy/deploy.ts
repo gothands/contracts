@@ -2,7 +2,7 @@ import { Wallet, utils } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
-import Secrets from "../secrets.json"
+import Secrets from "../secrets.json";
 
 // Get private key from the environment variable
 const PRIVATE_KEY: string = Secrets.privateKey || "";
@@ -40,7 +40,9 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const handsArtifact = await deployer.loadArtifact("Hands");
 
   // Estimate Hands contract deployment fee
-  const handsDeploymentFee = await deployer.estimateDeployFee(handsArtifact, [bankrollContractAddress]);
+  const handsDeploymentFee = await deployer.estimateDeployFee(handsArtifact, [
+    bankrollContractAddress,
+  ]);
 
   const parsedHandsFee = ethers.utils.formatEther(handsDeploymentFee.toString());
   console.log(`The Hands deployment is estimated to cost ${parsedHandsFee} ETH`);
@@ -52,4 +54,3 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const handsContractAddress = handsContract.address;
   console.log(`Hands was deployed to ${handsContractAddress}`);
 }
-

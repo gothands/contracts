@@ -53,5 +53,11 @@ jobs:
           pip3 install --upgrade pip setuptools
           pip3 install -r requirements.txt
 
+      - name: Create empty secrets.json
+        run: echo "{}" > secrets.json
+
+      - name: Compile with hardhat
+        run: npx hardhat compile --force
+
       - name: yarn lint
         run: yarn lint

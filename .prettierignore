@@ -1,0 +1,14 @@
+/.venv
+/artifacts
+/artifacts-zk
+/cache
+/cache-zk
+/deployments
+/dist
+/local-contracts.json
+/local-dependency-contracts.json
+/local-setup
+/node_modules
+/secrets.json
+/syncswap-contracts
+/typechain-types

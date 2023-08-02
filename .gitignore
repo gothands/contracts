@@ -10,3 +10,6 @@ deployments
 secrets.json
 
 *.me
+
+# Virtual environment for slither
+/.venv
