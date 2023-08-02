@@ -9,8 +9,8 @@
     "deploy-local": "NODE_ENV=test yarn hardhat deploy-zksync --script deployLocal.ts",
     "deploy-local-hardhat": "yarn hardhat run --network localhost deploy/deployLocalHardhat.ts",
     "format": "prettier --write --plugin=prettier-plugin-pkg --plugin=prettier-plugin-solidity .",
-    "lint": "yarn solhint && yarn slither",
-    "slither": "slither .",
+    "lint": "yarn hardhat compile --force && yarn solhint && yarn slither",
+    "slither": "slither --ignore-compile .",
     "solhint": "solhint 'contracts/**/*.sol' --max-warnings 0",
     "test": "NODE_ENV=test hardhat test"
   },
