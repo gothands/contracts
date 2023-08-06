@@ -73,7 +73,7 @@ contract Hands is BurnerManager {
   event MoveCommitted(uint indexed gameId, address indexed playerAddress, uint round);
   event NewRound(uint indexed gameId, uint round, uint pointsA, uint pointsB);
   event MoveRevealed(uint indexed gameId, address indexed playerAddress, Moves move, uint round);
-  event PlayerLeft(uint indexed gameId, address indexed playerAddress, uint round);
+  event PlayerLeft(uint indexed gameId, address indexed playerAddress);
   event PlayerCancelled(uint indexed gameId, address indexed playerAddress);
 
   // Modifiers
@@ -340,6 +340,7 @@ contract Hands is BurnerManager {
     //     game.playerB = payable(address(0));
     // }
 
+    emit PlayerLeft(gameId, sender)
     emit GameOutcome(gameId, outcome);
 
     clearBurner(games[gameId].playerA);
