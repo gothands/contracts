@@ -319,14 +319,13 @@ contract Hands is BurnerManager {
     require(game.playerA == sender || game.playerB == sender, "Not player of this game");
 
     if (
-      (revealPhaseStart[gameId] != 0 && block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT) ||
+      (revealPhaseStart[gameId] != 0 &&
+        block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT) ||
       (commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + COMMIT_TIMEOUT)
     ) {
       _abruptFinish(gameId);
       return;
     }
-
-
 
     // Pay remaining player
     address remainingPlayer = game.playerA == sender ? game.playerB : game.playerA;
