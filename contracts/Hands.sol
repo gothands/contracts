@@ -39,7 +39,8 @@ contract Hands is BurnerManager {
     PlayerA,
     PlayerB,
     Draw,
-    Left,
+    PlayerALeft,
+    PlayerBLeft,
     Timeout
   } // Possible outcomes
 
@@ -317,8 +318,19 @@ contract Hands is BurnerManager {
     address sender = getOwner(msg.sender);
     require(game.playerA == sender || game.playerB == sender, "Not player of this game");
 
+    if (
+      (revealPhaseStart[gameId] != 0 && block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT) ||
+      (commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + COMMIT_TIMEOUT)
+    ) {
+      _abruptFinish(gameId);
+      return;
+    }
+
+
+
     // Pay remaining player
     address remainingPlayer = game.playerA == sender ? game.playerB : game.playerA;
+    Outcomes outcome = game.playerA == sender ? Outcomes.PlayerALeft : Outcomes.PlayerBLeft;
     _payWinner(gameId, remainingPlayer, sender);
 
     //Set removed player to address(0)
@@ -328,7 +340,7 @@ contract Hands is BurnerManager {
     //     game.playerB = payable(address(0));
     // }
 
-    emit GameOutcome(gameId, Outcomes.Left);
+    emit GameOutcome(gameId, outcome);
 
     clearBurner(games[gameId].playerA);
     clearBurner(games[gameId].playerB);
