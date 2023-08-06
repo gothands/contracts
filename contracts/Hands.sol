@@ -340,7 +340,7 @@ contract Hands is BurnerManager {
     //     game.playerB = payable(address(0));
     // }
 
-    emit PlayerLeft(gameId, sender)
+    emit PlayerLeft(gameId, sender);
     emit GameOutcome(gameId, outcome);
 
     clearBurner(games[gameId].playerA);
