@@ -17,6 +17,8 @@ contract Staking is IStaking {
   uint256 public totalStaked;
   uint256 public cumulativeRewardRate;
   uint256 public unclaimedRewards;
+  uint256 public totalReceivedFunds;
+
   mapping(address => Staker) public stakers;
   mapping(address => uint256) public rewards;
 
@@ -81,6 +83,8 @@ contract Staking is IStaking {
       unclaimedRewards += amount;
     }
 
+    totalReceivedFunds += amount; // Increment the total received funds
+
     emit ReceivedFundsForStaking(amount);
   }
 
@@ -118,6 +122,6 @@ contract Staking is IStaking {
   }
 
   function getReceivedFundsForStaking() external view returns (uint256) {
-    return (cumulativeRewardRate * totalStaked) / 1e18;
+    return totalReceivedFunds;
   }
 }

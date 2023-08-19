@@ -41,7 +41,9 @@ contract Hands is BurnerManager {
     Draw,
     PlayerALeft,
     PlayerBLeft,
-    Timeout
+    PlayerATimeout,
+    PlayerBTimeout,
+    BothTimeout
   } // Possible outcomes
 
   struct Game {
@@ -481,25 +483,29 @@ contract Hands is BurnerManager {
       winningPlayer = game.playerA;
       stalledPlayer = game.playerB;
       bothStalled = true;
+      emit GameOutcome(gameId, Outcomes.BothTimeout);
     } else if (!playerACommited) {
       winningPlayer = game.playerB;
       stalledPlayer = game.playerA;
+      emit GameOutcome(gameId, Outcomes.PlayerATimeout);
     } else if (!playerBCommited) {
       winningPlayer = game.playerA;
       stalledPlayer = game.playerB;
+      emit GameOutcome(gameId, Outcomes.PlayerBTimeout);
     } else if (!playerARevealed && !playerBRevealed) {
       winningPlayer = game.playerA;
       stalledPlayer = game.playerB;
       bothStalled = true;
+      emit GameOutcome(gameId, Outcomes.BothTimeout);
     } else if (!playerARevealed) {
       winningPlayer = game.playerB;
       stalledPlayer = game.playerA;
+      emit GameOutcome(gameId, Outcomes.PlayerATimeout);
     } else if (!playerBRevealed) {
       winningPlayer = game.playerA;
       stalledPlayer = game.playerB;
+      emit GameOutcome(gameId, Outcomes.PlayerBTimeout);
     }
-
-    emit GameOutcome(gameId, Outcomes.Timeout);
 
     if (bothStalled) {
       _refund(gameId, winningPlayer, stalledPlayer);
