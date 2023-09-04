@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.11;
 
+
 import "./Bank.sol";
 import "./BurnerManager.sol";
 
@@ -95,17 +96,12 @@ contract Hands is BurnerManager {
     _;
   }
   modifier isCommitPhase(uint gameId) {
-    if (
-      commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + COMMIT_TIMEOUT
-    ) {
-      _abruptFinish(gameId);
-      return;
-    }
-    require(
+      require(
       games[gameId].encrMovePlayerA == 0x0 || games[gameId].encrMovePlayerB == 0x0,
       "Commit phase ended"
-    );
+      );
     _;
+    
   }
   modifier hasNotRevealed(uint gameId) {
     address sender = getOwner(msg.sender);
@@ -117,12 +113,6 @@ contract Hands is BurnerManager {
     _;
   }
   modifier isRevealPhase(uint gameId) {
-    if (
-      revealPhaseStart[gameId] != 0 && block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT
-    ) {
-      _abruptFinish(gameId);
-      return;
-    }
     require(
       (games[gameId].encrMovePlayerA != 0x0 && games[gameId].encrMovePlayerB != 0x0) ||
         (revealPhaseStart[gameId] != 0 &&
@@ -149,15 +139,15 @@ contract Hands is BurnerManager {
   function registerWithBurner(
     address burner,
     uint256 betAmount
-  ) public payable validBet isNotAlreadyInGame returns (uint) {
+  ) public payable validBet isNotAlreadyInGame {
     uint bet = betAmount;
     uint burnerFundAmount = msg.value - betAmount;
+
+    _register(msg.sender, bet);
 
     //set and fund burner
     setBurner(burner);
     fundBurner(burnerFundAmount);
-
-    return _register(msg.sender, bet);
   }
 
   function createPasswordMatch(bytes32 passwordHash) external payable validBet isNotAlreadyInGame {
@@ -172,11 +162,11 @@ contract Hands is BurnerManager {
     uint bet = betAmount;
     uint burnerFundAmount = msg.value - betAmount;
 
+    _createPasswordMatch(msg.sender, bet, passwordHash);
+
     //set and fund burner
     setBurner(burner);
     fundBurner(burnerFundAmount);
-
-    _createPasswordMatch(msg.sender, bet, passwordHash);
   }
 
   function joinPasswordMatch(string memory password) external payable validBet isNotAlreadyInGame {
@@ -210,10 +200,6 @@ contract Hands is BurnerManager {
     require(games[gameId].playerB == payable(address(0)), "Game already has two players");
     require(games[gameId].bet == betAmount, "Bet does not match");
 
-    //set and fund burner
-    setBurner(burner);
-    fundBurner(msg.value - betAmount);
-
     passwordGames[passwordHash] = 0;
     games[gameId].playerB = payable(msg.sender);
     playerGame[msg.sender] = gameId;
@@ -221,19 +207,21 @@ contract Hands is BurnerManager {
 
     emit PlayerWaiting(gameId, games[gameId].bet, msg.sender, false);
     emit PlayersMatched(gameId, games[gameId].playerA, games[gameId].playerB);
+
+    //set and fund burner
+    setBurner(burner);
+    fundBurner(msg.value - betAmount);
   }
 
   function cancel(uint gameId) public {
     Game storage game = games[gameId];
     address sender = getOwner(msg.sender);
+    uint bet = game.bet;
     require(game.playerA == sender, "Cannot cancel this game because sender is not player A");
     require(
       game.playerB == payable(address(0)),
       "Cannot cancel this game because player B is already registered"
     );
-
-    (bool success, ) = payable(sender).call{value: game.bet}("");
-    require(success, "Transfer failed");
 
     emit PlayerCancelled(gameId, sender);
 
@@ -244,6 +232,10 @@ contract Hands is BurnerManager {
     delete playerGame[sender];
     delete waitingPlayers[game.bet];
     delete games[gameId];
+
+    //transfer funds back to player
+    (bool success, ) = payable(sender).call{value: bet}("");
+    require(success, "Transfer failed");
   }
 
   function leave(uint gameId) public isRegistered(gameId) {
@@ -263,7 +255,7 @@ contract Hands is BurnerManager {
     // Pay remaining player
     address remainingPlayer = game.playerA == sender ? game.playerB : game.playerA;
     Outcomes outcome = game.playerA == sender ? Outcomes.PlayerALeft : Outcomes.PlayerBLeft;
-    _payWinner(gameId, remainingPlayer, sender);
+    uint total = game.bet * 2;
 
     emit PlayerLeft(gameId, sender);
     emit GameOutcome(gameId, outcome);
@@ -275,10 +267,19 @@ contract Hands is BurnerManager {
     delete playerGame[sender];
     delete waitingPlayers[game.bet];
     delete games[gameId];
+
+    //transfer funds
+    _payWinner(gameId, remainingPlayer, sender, total);
   }
 
   //send the encrypted move to the contract
   function commit(uint gameId, bytes32 encrMove) public isRegistered(gameId) isCommitPhase(gameId) {
+    if (
+      commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + COMMIT_TIMEOUT
+    ) {
+      _abruptFinish(gameId);
+      return;
+    }
     Game storage game = games[gameId];
     address sender = getOwner(msg.sender);
     require(sender == game.playerA || sender == game.playerB, "Player not in game");
@@ -310,6 +311,12 @@ contract Hands is BurnerManager {
     isRevealPhase(gameId)
     returns (Moves)
   {
+    if (
+      revealPhaseStart[gameId] != 0 && block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT
+    ) {
+      _abruptFinish(gameId);
+      return Moves.None;
+    }
     bytes32 encrMove = sha256(abi.encodePacked(clearMove));
     address sender = getOwner(msg.sender);
     Moves move = Moves(getFirstChar(clearMove));
@@ -447,8 +454,12 @@ contract Hands is BurnerManager {
 
       emit GameOutcome(gameId, outcome);
 
-      _payWinner(gameId, winner, loser);
+      //calculate total
+      uint total = game.bet * 2;
+
       _resetGame(gameId);
+      _payWinner(gameId, winner, loser, total);
+
     }
   }
 
@@ -493,14 +504,18 @@ contract Hands is BurnerManager {
       emit GameOutcome(gameId, Outcomes.PlayerBTimeout);
     }
 
-    if (bothStalled) {
-      _refund(gameId, winningPlayer, stalledPlayer);
-    } else {
-      _payWinner(gameId, winningPlayer, stalledPlayer);
-    }
+    //calculate total
+    uint total = game.bet * 2;
 
     //reset game
     _resetGame(gameId);
+
+    if (bothStalled) {
+      _refund(gameId, winningPlayer, stalledPlayer, total);
+    } else {
+      _payWinner(gameId, winningPlayer, stalledPlayer, total);
+    }
+
   }
 
   function _getOutcome(
@@ -526,27 +541,30 @@ contract Hands is BurnerManager {
     }
   }
 
-  function _payWinner(uint gameId, address winner, address loser) private {
-    uint total = games[gameId].bet * 2;
+  function _payWinner(uint gameId, address winner, address loser, uint total) private {
+    // Checks
+    require(winner != address(0) && loser != address(0), "Invalid addresses");
+
+    // Effects
     uint fee = (total * FEE_PERCENTAGE) / 100; // Calculate the fee
     uint payout = total - fee;
 
+    // Interactions
     // Transfer the fee to the bank contract
-    bankContract.receiveFunds{value: fee}(winner, loser);
+    bankContract.receiveFunds{value: fee}();
 
-    //Pay winner
+    // Pay winner
     (bool success, ) = winner.call{value: payout}("");
     require(success, "Transfer to Winner failed");
-  }
+}
 
   //function _refund similar to _paywinner still takes a fee for bankContract
-  function _refund(uint gameId, address payable playerA, address payable playerB) private {
-    uint total = games[gameId].bet * 2;
+  function _refund(uint gameId, address payable playerA, address payable playerB, uint total) private {
     uint fee = (total * FEE_PERCENTAGE) / 100; // Calculate the fee
     uint payout = total - fee;
 
     // Transfer the fee to the bank contract
-    bankContract.receiveFunds{value: fee}(playerA, playerB);
+    bankContract.receiveFunds{value: fee}();
 
     //Pay players
     (bool success, ) = playerA.call{value: payout / 2}("");

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.11;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IHandsToken.sol";
 import "./interfaces/IStaking.sol";
 import "./Bank.sol";
 
-contract Staking is IStaking {
+contract Staking is IStaking, ReentrancyGuard {
   IHandsToken private handsToken;
   Bank public bankContract;
 
@@ -40,7 +41,7 @@ contract Staking is IStaking {
     bankContract = Bank(_bankContractAddress);
   }
 
-  function stake(uint256 amount) external {
+  function stake(uint256 amount) external nonReentrant {
     updateRewardsFor(msg.sender);
 
     if (totalStaked == 0 && unclaimedRewards > 0) {
@@ -48,17 +49,21 @@ contract Staking is IStaking {
       unclaimedRewards = 0;
     }
 
-    handsToken.transferFrom(msg.sender, address(this), amount);
+    bool success = handsToken.transferFrom(msg.sender, address(this), amount);
+    require(success, "Transfer failed");
+
     totalStaked += amount;
     stakers[msg.sender].stakedAmount += amount;
 
     emit Staked(msg.sender, amount);
   }
 
-  function unstake(uint256 amount) external {
+  function unstake(uint256 amount) external nonReentrant {
     updateRewardsFor(msg.sender);
 
-    handsToken.transfer(msg.sender, amount);
+    bool success = handsToken.transfer(msg.sender, amount);
+    require(success, "Transfer failed");
+
     totalStaked -= amount;
     stakers[msg.sender].stakedAmount -= amount;
 
