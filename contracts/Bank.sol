@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.11;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 import "./Affiliate.sol";
 import "./Staking.sol";
 
@@ -11,15 +13,12 @@ import "./Staking.sol";
  * @dev  from Affiliate contract.
  * Keeps track of received funds and allows for fund withdrawal.
  */
-contract Bank {
+contract Bank is ReentrancyGuard {
   // Instance of the Affiliate contract
-  Affiliate private affiliateContract;
+  Affiliate private immutable affiliateContract;
 
   // Instance of the Staking contract
-  Staking private stakingContract;
-
-  // Mapping to keep track of received funds per block
-  mapping(uint256 => uint256) private receivedFundsPerBlock;
+  Staking private immutable stakingContract;
 
   // Event emitted when funds are received
   event FundsReceived(
@@ -65,40 +64,19 @@ contract Bank {
   }
 
   /**
+   * @dev Receive function to handle incoming Ether transactions.
+   */
+  receive() external payable {
+    // You can add any logic here if needed, or just leave it blank.
+    // For now, we'll just call the receiveFunds function to handle the incoming funds.
+    receiveFunds();
+  }
+
+  /**
    * @dev Allows contributors to deposit funds and emits a FundsReceived event
    */
-  function receiveFunds() public payable {
+  function receiveFunds() public payable nonReentrant {
     uint256 potFee = msg.value;
-
-    // // Check if the contributors are consumers and calculate the affiliate's share
-    // address affiliate1 = affiliateContract.getAffiliateOfConsumer(contributor1);
-    // address affiliate2 = affiliateContract.getAffiliateOfConsumer(contributor2);
-
-    // uint256 affiliateShare1 = affiliateContract.calculateAndAddAffiliateShare(
-    //   affiliate1,
-    //   contributor1,
-    //   potFee
-    // );
-    // require(affiliateShare1 <= potFee, "Affiliate share cannot be more than potFee");
-    // potFee -= affiliateShare1;
-
-    // uint256 affiliateShare2 = affiliateContract.calculateAndAddAffiliateShare(
-    //   affiliate2,
-    //   contributor2,
-    //   potFee
-    // );
-    // require(affiliateShare2 <= potFee, "Affiliate share cannot be more than potFee");
-    // potFee -= affiliateShare2;
-
-    ////console.log("Received funds: %s   affiliate1: %s   affiliate2: %s   affiliateShare1: %s");
-    //console.log("affiliateShare2: %s   potFee: %s", msg.value, affiliate1, affiliate2);
-    //console.log(affiliateShare1, affiliateShare2, potFee);
-    //console.log("Received funds: %s", msg.value);
-    //console.log("affiliate1: %s", affiliate1);
-    //console.log("affiliate2: %s", affiliate2);
-    //console.log("affiliateShare1: %s", affiliateShare1);
-    //console.log("affiliateShare2: %s", affiliateShare2);
-    //console.log("potFee: %s", potFee);
 
     // Add the remaining potFee to the receivedFundsPerBlock
     // Call the addReceivedFundsForStaking function from the Staking contract
@@ -113,32 +91,14 @@ contract Bank {
   }
 
   /**
-   * @dev Returns the total funds received in a given block range
-   * @param startBlock Starting block number for the period
-   * @param endBlock Ending block number for the period
-   * @return Total funds received in the given period
-   */
-  function getReceivedFundsInPeriod(
-    uint256 startBlock,
-    uint256 endBlock
-  ) external view returns (uint256) {
-    uint256 totalFunds = 0;
-    for (uint256 i = startBlock; i <= endBlock; i++) {
-      totalFunds += receivedFundsPerBlock[i];
-    }
-    return totalFunds;
-  }
-
-  /**
    * @dev Allows the affiliate and contract to withdraw funds and emits a Withdrawal event
    * @param amount Amount to withdraw
    */
-  function withdraw(uint256 amount, address recipient) external onlyAffiliateOrStakingContract {
+  function withdraw(uint256 amount, address recipient) external onlyAffiliateOrStakingContract nonReentrant {
     require(amount > 0, "Withdrawal amount should be more than zero");
     require(amount <= address(this).balance, "Not enough funds in the contract.");
 
     // Transfer the funds to the recipient
-    (bool success, ) = recipient.call{value: amount}("");
-    require(success, "Transfer failed.");
+    payable(recipient).transfer(amount);
   }
 }
