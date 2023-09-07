@@ -304,7 +304,6 @@ async function main() {
   // Deploy bank contract
   const BankContractFactory = await hre.ethers.getContractFactory("Bank");
   const BankContract = await BankContractFactory.deploy(
-    affiliateContractAddress,
     stakingContractAddress,
   );
   await BankContract.deployed();
