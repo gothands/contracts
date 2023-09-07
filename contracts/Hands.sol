@@ -10,10 +10,10 @@ contract Hands is BurnerManager {
   Bank private bankContract;
 
   uint public constant BET_MIN = 1e16;
-  uint public constant REVEAL_TIMEOUT = 2 minutes;
   uint public constant FEE_PERCENTAGE = 5;
   uint public constant MAX_POINTS_PER_ROUND = 3;
-  uint public constant COMMIT_TIMEOUT = 2 minutes;
+  uint public constant MOVE_TIMEOUT = 2 minutes;
+  uint public constant TIMEOUT_MARGIN = 15 seconds;
 
   enum Moves {
     None,
@@ -34,7 +34,7 @@ contract Hands is BurnerManager {
   }
 
   constructor(address _bankContractAddress) {
-    bankContract = Bank(_bankContractAddress);
+    bankContract = Bank(payable(_bankContractAddress));
   }
 
   struct Game {
@@ -89,7 +89,7 @@ contract Hands is BurnerManager {
     require(
       (games[gameId].encrMovePlayerA != 0x0 && games[gameId].encrMovePlayerB != 0x0) ||
         (commitPhaseStart[gameId] != 0 &&
-          block.timestamp > commitPhaseStart[gameId] + COMMIT_TIMEOUT),
+          block.timestamp > commitPhaseStart[gameId] + MOVE_TIMEOUT),
       "Commit phase not ended"
     );
     _;
@@ -115,7 +115,7 @@ contract Hands is BurnerManager {
     require(
       (games[gameId].encrMovePlayerA != 0x0 && games[gameId].encrMovePlayerB != 0x0) ||
         (revealPhaseStart[gameId] != 0 &&
-          block.timestamp < revealPhaseStart[gameId] + REVEAL_TIMEOUT),
+          block.timestamp < revealPhaseStart[gameId] + MOVE_TIMEOUT + TIMEOUT_MARGIN),
       "Is not reveal phase"
     );
     _;
@@ -124,7 +124,7 @@ contract Hands is BurnerManager {
     require(
       (games[gameId].movePlayerA != Moves.None && games[gameId].movePlayerB != Moves.None) ||
         (revealPhaseStart[gameId] != 0 &&
-          block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT),
+          block.timestamp > revealPhaseStart[gameId] + MOVE_TIMEOUT + TIMEOUT_MARGIN),
       "Reveal phase not ended"
     );
     _;
@@ -233,8 +233,7 @@ contract Hands is BurnerManager {
     delete games[gameId];
 
     //transfer funds back to player
-    (bool success, ) = payable(sender).call{value: bet}("");
-    require(success, "Transfer failed");
+    payable(sender).transfer(bet);
   }
 
   function leave(uint gameId) public isRegistered(gameId) {
@@ -244,8 +243,8 @@ contract Hands is BurnerManager {
 
     if (
       (revealPhaseStart[gameId] != 0 &&
-        block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT) ||
-      (commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + COMMIT_TIMEOUT)
+        block.timestamp > revealPhaseStart[gameId] + MOVE_TIMEOUT + TIMEOUT_MARGIN) ||
+      (commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + MOVE_TIMEOUT + TIMEOUT_MARGIN)
     ) {
       _abruptFinish(gameId);
       return;
@@ -274,7 +273,7 @@ contract Hands is BurnerManager {
   //send the encrypted move to the contract
   function commit(uint gameId, bytes32 encrMove) public isRegistered(gameId) isCommitPhase(gameId) {
     if (
-      commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + COMMIT_TIMEOUT
+      commitPhaseStart[gameId] != 0 && block.timestamp > commitPhaseStart[gameId] + MOVE_TIMEOUT + TIMEOUT_MARGIN
     ) {
       _abruptFinish(gameId);
       return;
@@ -311,7 +310,7 @@ contract Hands is BurnerManager {
     returns (Moves)
   {
     if (
-      revealPhaseStart[gameId] != 0 && block.timestamp > revealPhaseStart[gameId] + REVEAL_TIMEOUT
+      revealPhaseStart[gameId] != 0 && block.timestamp > revealPhaseStart[gameId] + MOVE_TIMEOUT + TIMEOUT_MARGIN
     ) {
       _abruptFinish(gameId);
       return Moves.None;
@@ -553,8 +552,7 @@ contract Hands is BurnerManager {
     bankContract.receiveFunds{value: fee}();
 
     // Pay winner
-    (bool success, ) = winner.call{value: payout}("");
-    require(success, "Transfer to Winner failed");
+    payable(winner).transfer(payout);
 }
 
   //function _refund similar to _paywinner still takes a fee for bankContract
@@ -566,10 +564,8 @@ contract Hands is BurnerManager {
     bankContract.receiveFunds{value: fee}();
 
     //Pay players
-    (bool success, ) = playerA.call{value: payout / 2}("");
-    require(success, "Transfer to Player A failed");
-    (success, ) = playerB.call{value: payout / 2}("");
-    require(success, "Transfer to Player B failed");
+    payable(playerA).transfer(payout / 2);
+    payable(playerB).transfer(payout / 2);
   }
 
   function _resetGame(uint gameId) private {
