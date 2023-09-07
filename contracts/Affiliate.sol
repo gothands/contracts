@@ -52,7 +52,7 @@ contract Affiliate is IAffiliate {
    * @param _bankContract The address of the bank contract.
    */
   function setBankContract(address _bankContract) external bankNotInitialized {
-    bankContract = Bank(_bankContract);
+    bankContract = Bank(payable(_bankContract));
   }
 
   /**

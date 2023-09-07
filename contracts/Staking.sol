@@ -38,7 +38,7 @@ contract Staking is IStaking, ReentrancyGuard {
   }
 
   function setBankContract(address _bankContractAddress) external bankNotInitialized {
-    bankContract = Bank(_bankContractAddress);
+    bankContract = Bank(payable(_bankContractAddress));
   }
 
   function stake(uint256 amount) external nonReentrant {

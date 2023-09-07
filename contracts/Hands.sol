@@ -60,7 +60,7 @@ contract Hands is BurnerManager {
 
   // Events
   event PlayersMatched(uint indexed gameId, address indexed playerA, address indexed playerB);
-  event PlayerRegistered(uint indexed gameId, address indexed playerAddress);
+  event PlayerRegistered(uint indexed gameId, address indexed playerAddress, bytes32 name);
   event PlayerWaiting(uint indexed gameId, uint bet, address indexed playerAddress, bool first);
   event GameOutcome(uint indexed gameId, Outcomes outcome);
   event MoveCommitted(uint indexed gameId, address indexed playerAddress, uint round);
@@ -267,7 +267,7 @@ contract Hands is BurnerManager {
     delete games[gameId];
 
     //transfer funds
-    _payWinner(gameId, remainingPlayer, sender, total);
+    _payWinner(remainingPlayer, sender, total);
   }
 
   //send the encrypted move to the contract
@@ -350,7 +350,7 @@ contract Hands is BurnerManager {
   function _register(address sender, uint bet) internal returns (uint) {
     uint gameId;
 
-    emit PlayerRegistered(gameId, sender);
+    emit PlayerRegistered(gameId, sender, 0x0);
 
     if (waitingPlayers[bet] != 0) {
       gameId = waitingPlayers[bet];
@@ -403,7 +403,7 @@ contract Hands is BurnerManager {
     });
     playerGame[sender] = lastGameId;
     passwordGames[passwordHash] = lastGameId;
-    emit PlayerRegistered(lastGameId, sender);
+    emit PlayerRegistered(lastGameId, sender, passwordHash);
     emit PlayerWaiting(lastGameId, bet, sender, true);
     return gameId;
   }
@@ -456,7 +456,7 @@ contract Hands is BurnerManager {
       uint total = game.bet * 2;
 
       _resetGame(gameId);
-      _payWinner(gameId, winner, loser, total);
+      _payWinner(winner, loser, total);
 
     }
   }
@@ -509,16 +509,16 @@ contract Hands is BurnerManager {
     _resetGame(gameId);
 
     if (bothStalled) {
-      _refund(gameId, winningPlayer, stalledPlayer, total);
+      _refund(winningPlayer, stalledPlayer, total);
     } else {
-      _payWinner(gameId, winningPlayer, stalledPlayer, total);
+      _payWinner(winningPlayer, stalledPlayer, total);
     }
 
   }
 
   function _getOutcome(
     uint gameId
-  ) private isRegistered(gameId) revealPhaseEnded(gameId) returns (Outcomes) {
+  ) private isRegistered(gameId) revealPhaseEnded(gameId) {
     Game storage game = games[gameId];
     Outcomes outcome = _computeOutcome(game.movePlayerA, game.movePlayerB);
 
@@ -539,7 +539,7 @@ contract Hands is BurnerManager {
     }
   }
 
-  function _payWinner(uint gameId, address winner, address loser, uint total) private {
+  function _payWinner(address winner, address loser, uint total) private {
     // Checks
     require(winner != address(0) && loser != address(0), "Invalid addresses");
 
@@ -556,7 +556,7 @@ contract Hands is BurnerManager {
 }
 
   //function _refund similar to _paywinner still takes a fee for bankContract
-  function _refund(uint gameId, address payable playerA, address payable playerB, uint total) private {
+  function _refund(address payable playerA, address payable playerB, uint total) private {
     uint fee = (total * FEE_PERCENTAGE) / 100; // Calculate the fee
     uint payout = total - fee;
 
