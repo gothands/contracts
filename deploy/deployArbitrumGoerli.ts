@@ -43,6 +43,7 @@ interface DeployedContracts {
   Bank: string;
   Staking: string;
   Affiliate: string;
+  Session: string;
 }
 
 interface DeployedAbis {
@@ -51,6 +52,7 @@ interface DeployedAbis {
   Bank: any;
   Staking: any;
   Affiliate: any;
+  Session: any;
 }
 
 const fetchDependencyAbis = async (): Promise<DependencyAbis> => {
@@ -348,6 +350,16 @@ async function main() {
   // Show the Hands contract info
   console.log(`Hands was deployed to ${handsContractAddress}`);
 
+
+  //Deploy session contract
+  const SessionContractFactory = await hre.ethers.getContractFactory("Session");
+  const SessionContract = await SessionContractFactory.deploy();
+  await SessionContract.deployed();
+  const SessionContractArtifact = await hre.artifacts.readArtifact("Session");
+  const SessionContractAbi = SessionContractArtifact.abi;
+  const sessionContractAddress = SessionContract.address;
+  console.log("Session ");
+
   // //Send eth to address
   // const reciever = "0xf8a2bE5bAbD50AC94b5B811c137F306676012567"
   // const reciever2 = "0x3Cab3b593388D1750ab967D62927dD2B90e3cC22"
@@ -378,6 +390,7 @@ async function main() {
     Staking: stakingContractAddress,
     Hands: handsContractAddress,
     Affiliate: affiliateContractAddress,
+    Session: sessionContractAddress,
   };
 
   const deployedAbis: DeployedAbis = {
@@ -386,6 +399,7 @@ async function main() {
     Staking: StakingContractAbi,
     Hands: HandsContractAbi,
     Affiliate: AffiliateTokenContractAbi,
+    Session: SessionContractAbi,
   };
 
   setLocalContractFile(dependencyContracts, dependencyAbis, deployedContracts, deployedAbis);
