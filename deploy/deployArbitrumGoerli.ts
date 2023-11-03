@@ -254,7 +254,7 @@ async function main() {
     supplyCap,
   );
   //verify
-  hre.run("verify:verify", {
+  await hre.run("verify:verify", {
     address: HandsTokenContract.address,
     constructorArguments: [premintReceiver, premintAmount, supplyCap],
   });
@@ -279,7 +279,7 @@ async function main() {
   const affiliateContractAddress = AffiliateTokenContract.address;
 
   //Verify
-  hre.run("verify:verify", {
+  await hre.run("verify:verify", {
     address: affiliateContractAddress,
     constructorArguments: [],
   });
@@ -307,7 +307,7 @@ async function main() {
   const stakingContractAddress = StakingContract.address;
 
   //Verify
-  hre.run("verify:verify", {
+  await hre.run("verify:verify", {
     address: stakingContractAddress,
     constructorArguments: [handsTokenContractAddress],
   });
@@ -331,7 +331,7 @@ async function main() {
   const bankContractAddress = BankContract.address;
 
   //Verify
-  hre.run("verify:verify", {
+  await hre.run("verify:verify", {
     address: bankContractAddress,
     constructorArguments: [stakingContractAddress],
   });
@@ -371,7 +371,7 @@ async function main() {
   console.log("Hands ");
 
   //Verify
-  hre.run("verify:verify", {
+  await hre.run("verify:verify", {
     address: handsContractAddress,
     constructorArguments: [bankContractAddress],
   });
