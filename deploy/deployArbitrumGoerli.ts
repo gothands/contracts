@@ -203,6 +203,9 @@ function waitForPoolCreatedEvent(contract: any): Promise<string> {
 
 console.log("Deploying Hands and Bank contracts");
 
+const delay = (ms: any) => new Promise(res => setTimeout(res, ms));
+
+
 async function main() {
   console.log(`Running deploy script for the Hands and bank contracts`);
 
@@ -254,6 +257,7 @@ async function main() {
     supplyCap,
   );
   //verify
+  await delay(5000);
   await hre.run("verify:verify", {
     address: HandsTokenContract.address,
     constructorArguments: [premintReceiver, premintAmount, supplyCap],
@@ -279,6 +283,7 @@ async function main() {
   const affiliateContractAddress = AffiliateTokenContract.address;
 
   //Verify
+  await delay(5000);
   await hre.run("verify:verify", {
     address: affiliateContractAddress,
     constructorArguments: [],
@@ -307,6 +312,7 @@ async function main() {
   const stakingContractAddress = StakingContract.address;
 
   //Verify
+  await delay(5000);
   await hre.run("verify:verify", {
     address: stakingContractAddress,
     constructorArguments: [handsTokenContractAddress],
@@ -331,6 +337,7 @@ async function main() {
   const bankContractAddress = BankContract.address;
 
   //Verify
+  await delay(5000);
   await hre.run("verify:verify", {
     address: bankContractAddress,
     constructorArguments: [stakingContractAddress],
@@ -371,6 +378,7 @@ async function main() {
   console.log("Hands ");
 
   //Verify
+  await delay(5000);
   await hre.run("verify:verify", {
     address: handsContractAddress,
     constructorArguments: [bankContractAddress],
