@@ -9,6 +9,8 @@ typechain-types
 deployments
 secrets.json
 
+.env
+
 *.me
 
 # Virtual environment for slither

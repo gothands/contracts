@@ -253,6 +253,11 @@ async function main() {
     premintAmount,
     supplyCap,
   );
+  //verify
+  hre.run("verify:verify", {
+    address: HandsTokenContract.address,
+    constructorArguments: [premintReceiver, premintAmount, supplyCap],
+  });
   // await HandsTokenContract.deployed();
   const HandsTokenArtifact = await hre.artifacts.readArtifact("HandsToken");
   const HandsTokenContractAbi = HandsTokenArtifact.abi;
@@ -272,6 +277,12 @@ async function main() {
   const AffiliateTokenArtifact = await hre.artifacts.readArtifact("Affiliate");
   const AffiliateTokenContractAbi = AffiliateTokenArtifact.abi;
   const affiliateContractAddress = AffiliateTokenContract.address;
+
+  //Verify
+  hre.run("verify:verify", {
+    address: affiliateContractAddress,
+    constructorArguments: [],
+  });
 
   // Show the Affiliate contract info
   console.log(`Affiliate was deployed to ${affiliateContractAddress}`);
@@ -295,6 +306,12 @@ async function main() {
   const StakingContractAbi = StakingContractArtifact.abi;
   const stakingContractAddress = StakingContract.address;
 
+  //Verify
+  hre.run("verify:verify", {
+    address: stakingContractAddress,
+    constructorArguments: [handsTokenContractAddress],
+  });
+
   // Show the Staking contract
   console.log(`Staking was deployed to ${stakingContractAddress}`);
 
@@ -312,6 +329,12 @@ async function main() {
   const BankContractArtifact = await hre.artifacts.readArtifact("Bank");
   const BankContractAbi = BankContractArtifact.abi;
   const bankContractAddress = BankContract.address;
+
+  //Verify
+  hre.run("verify:verify", {
+    address: bankContractAddress,
+    constructorArguments: [stakingContractAddress],
+  });
 
   // Show the bank contract info
   console.log(`bank was deployed to ${bankContractAddress}`);
@@ -347,6 +370,12 @@ async function main() {
   const handsContractAddress = HandsContract.address;
   console.log("Hands ");
 
+  //Verify
+  hre.run("verify:verify", {
+    address: handsContractAddress,
+    constructorArguments: [bankContractAddress],
+  });
+
   // Show the Hands contract info
   console.log(`Hands was deployed to ${handsContractAddress}`);
 
@@ -359,6 +388,7 @@ async function main() {
   const SessionContractAbi = SessionContractArtifact.abi;
   const sessionContractAddress = SessionContract.address;
   console.log("Session ");
+
 
   // //Send eth to address
   // const reciever = "0xf8a2bE5bAbD50AC94b5B811c137F306676012567"
